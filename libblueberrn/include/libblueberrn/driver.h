@@ -484,6 +484,17 @@ namespace berrn
 		{
 		    vblank_end();
 		});
+
+		scan_time = 1;
+		refresh_period = time_in_hz(60);
+		vblank_period = 0;
+		m_width = 100;
+		m_height = 100;
+		min_x = 0;
+		min_y = 0;
+
+		max_x = 99;
+		max_y = 99;
 	    }
 
 	    ~berrnscreen()
@@ -493,7 +504,7 @@ namespace berrn
 
 	    int get_height() const
 	    {
-		return height;
+		return m_height;
 	    }
 
 	    int vpos()
@@ -502,13 +513,13 @@ namespace berrn
 
 		int vpos = (delta / scan_time);
 
-		return ((max_y + 1 + vpos) % height);
+		return ((max_y + 1 + vpos) % m_height);
 	    }
 
 	    int64_t time_until_pos(int vpos)
 	    {
-		vpos += (height - (max_y + 1));
-		vpos %= height;
+		vpos += (m_height - (max_y + 1));
+		vpos %= m_height;
 
 		int64_t target_delta = (vpos * scan_time);
 
@@ -537,15 +548,41 @@ namespace berrn
 		refresh_period = ((1e6 / pix_clock) * htotal * vtotal);
 		vblank_period = double(refresh_period) / vtotal * (vtotal - (vbstart - vbend));
 
-		width = htotal;
-		height = vtotal;
+		m_width = htotal;
+		m_height = vtotal;
 
 		min_x = hbend;
 		max_x = (hbstart) ? (hbstart - 1) : (htotal - 1);
 		min_y = vbend;
 		max_y = (vbstart - 1);
 
-		scan_time = (refresh_period / height);
+		scan_time = (refresh_period / m_height);
+	    }
+
+	    void set_refresh_hz(double hz)
+	    {
+		refresh_period = time_in_hz(hz);
+		scan_time = (refresh_period / m_height);
+	    }
+
+	    void set_vblank_time(int64_t period)
+	    {
+		vblank_period = period;
+	    }
+
+	    void set_size(int width, int height)
+	    {
+		m_width = width;
+		m_height = height;
+		scan_time = (refresh_period / m_height);
+	    }
+
+	    void set_visarea(int minx, int maxx, int miny, int maxy)
+	    {
+		min_x = minx;
+		max_x = maxx;
+		min_y = miny;
+		max_y = maxy;
 	    }
 
 	    void init()
@@ -567,8 +604,8 @@ namespace berrn
 
 	    int64_t refresh_period = 0;
 	    int64_t vblank_period = 0;
-	    int width = 0;
-	    int height = 0;
+	    int m_width = 0;
+	    int m_height = 0;
 
 	    int min_x = 0;
 	    int max_x = 0;

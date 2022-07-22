@@ -78,20 +78,8 @@ namespace berrn
 	    return data;
 	};
 
-	auto gfx_func = [&](int layer, uint8_t code, uint8_t attrib, int bank) -> uint32_t
-	{
-	    uint32_t data = 0;
-
-	    if (tilecb)
-	    {
-		data = tilecb(layer, code, attrib, bank);
-	    }
-
-	    return data;
-	};
-
 	tile_chip.set_tile_read_cb(tile_func);
-	gfx_chip.set_tile_callback(gfx_func);
+	gfx_chip.set_tile_callback(tilecb);
     }
 
     void k052109video::logRender()

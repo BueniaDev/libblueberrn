@@ -19,7 +19,7 @@
 #ifndef LIBBLUEBERRN_M68K_H
 #define LIBBLUEBERRN_M68K_H
 
-#include "m68k/Botsashi/Botsashi/botsashi.h"
+#include <botsashi.h>
 #include <driver.h>
 using namespace botsashi;
 using namespace berrn;
@@ -105,7 +105,7 @@ class BerrnM68KProcessor : public BerrnProcessor
 	int64_t get_exec_time()
 	{
 	    int64_t cycles = (current_cycles - cycles_left);
-	    return static_cast<int64_t>((1e6 * cycles / clock_freq) + 0.5);
+	    return static_cast<int64_t>((1e6 * (cycles + 1) / clock_freq));
 	}
 
 	int64_t execute(int64_t us)
@@ -128,6 +128,7 @@ class BerrnM68KProcessor : public BerrnProcessor
 		}
 		else
 		{
+		    // core.debugoutput();
 		    cycles_left -= core.executenextinstr();
 		}
 	    }
@@ -163,6 +164,10 @@ class BerrnM68KProcessor : public BerrnProcessor
 	bool is_halted = false;
 	bool dump = false;
 	int num_instrs = 0;
+	uint32_t prev_pc = 0;
+	int irq_level = 0;
+	bool is_irq_line = false;
+	bool is_dump = false;
 };
 
 class BerrnM68KCPU : public BerrnCPU

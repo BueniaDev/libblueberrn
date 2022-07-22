@@ -19,7 +19,7 @@
 #ifndef LIBBLUEBERRN_M6502_H
 #define LIBBLUEBERRN_M6502_H
 
-#include "m6502/Bee6502/Bee6502/bee6502.h"
+#include <bee6502.h>
 #include "scheduler.h"
 using namespace bee6502;
 using namespace berrn;
@@ -90,7 +90,7 @@ class Berrn6502Processor : public BerrnProcessor
 	int64_t get_exec_time()
 	{
 	    int64_t cycles = (current_cycles - cycles_left);
-	    return static_cast<int64_t>((1e6 * cycles / clock_freq) + 0.5);
+	    return static_cast<int64_t>((1e6 * (cycles + 1) / clock_freq));
 	}
 
 	int64_t execute(int64_t us)

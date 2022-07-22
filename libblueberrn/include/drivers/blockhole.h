@@ -76,7 +76,7 @@ namespace berrn
 	    BlockHoleMainInterface *main_inter = NULL;
 	    BerrnKonami2CPU *main_cpu = NULL;
 
-	    bool is_bank_5800_ram = false;
+	    bool is_bank_5800_upper = false;
 
 	    array<uint8_t, 0x800> palette_ram;
 	    array<uint8_t, 0x800> bank_5800_ram;

@@ -36,6 +36,8 @@ namespace berrn
 	    berrn_rom_load("bmu03c.14d", 0x20000, 0x10000)
 	berrn_rom_region("mcu", 0x1000, 0)
 	    berrn_rom_load("bm.7k", 0x0000, 0x1000)
+	berrn_rom_region("gfx1", 0x8000, 0)
+	    berrn_rom_load("bm04.5h",  0x00000, 0x8000)
 	berrn_rom_region("gfx2", 0x40000, 0)
 	    berrn_rom_load("bm15.10f", 0x00000, 0x8000)
 	    berrn_rom_load("bm16.11f", 0x08000, 0x8000)
@@ -55,6 +57,8 @@ namespace berrn
 	    berrn_rom_load("bm1.12a", 0x0000, 0x0100)
 	    berrn_rom_load("bm2.13a", 0x0100, 0x0100)
 	    berrn_rom_load("bm3.14a", 0x0200, 0x0100)
+	berrn_rom_region("charproms", 0x0100, 0)
+	    berrn_rom_load("bm5.7f",  0x0000, 0x0100)
 	berrn_rom_region("fgproms", 0x0200, 0)
 	    berrn_rom_load("bm10.7l",  0x0000, 0x0100)
 	    berrn_rom_load("bm9.6l",   0x0100, 0x0100)
@@ -145,9 +149,7 @@ namespace berrn
 	else if (addr == 0xC804)
 	{
 	    current_rom_bank = ((data >> 2) & 0x7);
-
-	    string char_str = testbit(data, 7) ? "Enabling" : "Disabling";
-	    cout << char_str << " characters..." << endl;
+	    main_core.writeIO(0, data);
 	}
 	else if (addr == 0xC806)
 	{
@@ -160,11 +162,11 @@ namespace berrn
 	}
 	else if (inRange(addr, 0xD000, 0xD400))
 	{
-	    video_ram.at(addr & 0x3FF) = data;
+	    main_core.writeGraphics(0, addr, data);
 	}
 	else if (inRange(addr, 0xD400, 0xD800))
 	{
-	    color_ram.at(addr & 0x3FF) = data;
+	    main_core.writeGraphics(1, addr, data);
 	}
 	else if (addr == 0xD800)
 	{
@@ -225,7 +227,7 @@ namespace berrn
 
     Berrn1943Core::Berrn1943Core(berrndriver &drv) : driver(drv)
     {
-	auto &scheduler = driver.get_scheduler();
+	// auto &scheduler = driver.get_scheduler();
 	main_inter = new Berrn1943Main(driver, *this);
 	main_cpu = new BerrnZ80CPU(driver, 6000000, *main_inter);
 	video = new berrn1943video(driver);
@@ -298,10 +300,33 @@ namespace berrn
 	}
     }
 
+    uint8_t Berrn1943Core::readGraphics(int bank, uint16_t addr)
+    {
+	uint8_t data = 0;
+
+	switch (bank)
+	{
+	    case 0: data = video->readVRAM(addr); break;
+	    case 1: data = video->readCRAM(addr); break;
+	}
+
+	return data;
+    }
+
+    void Berrn1943Core::writeGraphics(int bank, uint16_t addr, uint8_t data)
+    {
+	switch (bank)
+	{
+	    case 0: video->writeVRAM(addr, data); break;
+	    case 1: video->writeCRAM(addr, data); break;
+	}
+    }
+
     void Berrn1943Core::writeIO(int addr, uint8_t data)
     {
 	switch (addr)
 	{
+	    case 0: video->writeC804(data); break;
 	    case 1: video->writeBGScrollX(false, data); break;
 	    case 2: video->writeBGScrollX(true, data); break;
 	    case 3: video->writeBGScrollY(data); break;

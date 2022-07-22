@@ -34,6 +34,17 @@ namespace berrn
 	2048
     };
 
+    static BerrnGfxLayout fg_layout = 
+    {
+	8, 8,
+	berrn_rgn_frac(1, 1),
+	2,
+	{ 4, 0 },
+	{ gfx_step4(0, 1), gfx_step4(8, 1) },
+	{ gfx_step8(0, 16) },
+	128
+    };
+
     berrn1943video::berrn1943video(berrndriver &drv) : driver(drv)
     {
 	bitmap = new BerrnBitmapRGB(256, 224);
@@ -49,15 +60,20 @@ namespace berrn
     {
 	prior_bmp.fill(0);
 	tile_rom = driver.get_rom_region("tilerom");
+	auto fg_rom = driver.get_rom_region("gfx1");
 	auto bg_rom = driver.get_rom_region("gfx2");
 	auto bg2_rom = driver.get_rom_region("gfx3");
+	gfxDecodeSet(fg_layout, fg_rom, fg_tiles);
 	gfxDecodeSet(bg_layout, bg2_rom, bg2_tiles);
 	gfxDecodeSet(bg_layout, bg_rom, bg_tiles);
+	video_ram.fill(0);
+	color_ram.fill(0);
 	initPalettes();
     }
 
     void berrn1943video::initPalettes()
     {
+	auto char_prom = driver.get_rom_region("charproms");
 	auto fg_prom = driver.get_rom_region("fgproms");
 	auto bg_prom = driver.get_rom_region("bgproms");
 	auto pal_proms = driver.get_rom_region("colorproms");
@@ -80,6 +96,12 @@ namespace berrn
 	    }
 
 	    colors.at(index) = color;
+	}
+
+	for (int index = 0; index < 0x80; index++)
+	{
+	    int pal_lsb = (char_prom.at(index) & 0xF);
+	    char_palettes.at(index) = (0x40 | pal_lsb);
 	}
 
 	for (int index = 0; index < 0x100; index++)
@@ -105,6 +127,8 @@ namespace berrn
     void berrn1943video::shutdown()
     {
 	bg2_tiles.clear();
+	bg_tiles.clear();
+	fg_tiles.clear();
 	tile_rom.clear();
     }
 
@@ -122,7 +146,52 @@ namespace berrn
 	    updateBG1();
 	}
 
+	if (is_fg_enabled)
+	{
+	    updateFG();
+	}
+
 	driver.set_screen_bmp(bitmap);
+    }
+
+    void berrn1943video::updateFG()
+    {
+	for (int xpos = 0; xpos < 256; xpos++)
+	{
+	    for (int ypos = 0; ypos < 224; ypos++)
+	    {
+		int sy = ((ypos + 16) % 256);
+		int sx = xpos;
+
+		int row = (sy / 8);
+		int col = (sx / 8);
+
+		uint32_t offs = ((row * 32) + col);
+
+		uint8_t attrib = color_ram.at(offs);
+		uint16_t tile_num = video_ram.at(offs);
+		int tile_num_msb = ((attrib >> 5) & 0x7);
+		tile_num |= (tile_num_msb << 8);
+
+		uint32_t color = (attrib & 0x1F);
+
+		int py = (sy % 8);
+		int px = (sx % 8);
+
+		int pixel = ((py * 8) + px);
+
+		uint32_t tile_color = fg_tiles.at((tile_num * 64) + pixel);
+
+		if (tile_color == 0)
+		{
+		    continue;
+		}
+
+		uint8_t color_num = char_palettes.at((color * 4) + tile_color);
+
+		bitmap->setPixel(xpos, ypos, colors.at(color_num));
+	    }
+	}
     }
 
     void berrn1943video::updateBG1()
@@ -260,5 +329,34 @@ namespace berrn
     {
 	is_bg1_enabled = testbit(data, 4);
 	is_bg2_enabled = testbit(data, 5);
+    }
+
+    uint8_t berrn1943video::readVRAM(uint16_t addr)
+    {
+	addr &= 0x3FF;
+	return video_ram.at(addr);
+    }
+
+    void berrn1943video::writeVRAM(uint16_t addr, uint8_t data)
+    {
+	addr &= 0x3FF;
+	video_ram.at(addr) = data;
+    }
+
+    uint8_t berrn1943video::readCRAM(uint16_t addr)
+    {
+	addr &= 0x3FF;
+	return color_ram.at(addr);
+    }
+
+    void berrn1943video::writeCRAM(uint16_t addr, uint8_t data)
+    {
+	addr &= 0x3FF;
+	color_ram.at(addr) = data;
+    }
+
+    void berrn1943video::writeC804(uint8_t data)
+    {
+	is_fg_enabled = testbit(data, 7);
     }
 };

@@ -19,7 +19,7 @@
 #ifndef LIBBLUEBERRN_KONAMI2_H
 #define LIBBLUEBERRN_KONAMI2_H
 
-#include "m680x/Botnami/Botnami/botnami.h"
+#include <botnami.h>
 #include "scheduler.h"
 using namespace botnami;
 using namespace berrn;
@@ -98,7 +98,7 @@ class BerrnKonami2Processor : public BerrnProcessor
 	int64_t get_exec_time()
 	{
 	    int64_t cycles = (current_cycles - cycles_left);
-	    return static_cast<int64_t>((1e6 * cycles / clock_freq) + 0.5);
+	    return static_cast<int64_t>((1e6 * (cycles + 1) / clock_freq));
 	}
 
 	int64_t execute(int64_t us)

@@ -145,7 +145,7 @@ namespace berrn
 	scheduler.add_device(main_cpu);
 	palette_ram.fill(0);
 	bank_5800_ram.fill(0);
-	is_bank_5800_ram = false;
+	is_bank_5800_upper = false;
 	return true;
     }
 
@@ -179,12 +179,10 @@ namespace berrn
 
     void BlockHoleCore::setLines(uint8_t data)
     {
-	string bank_str = testbit(data, 5) ? "Asserting" : "Clearing";
 	string rmrd_str = testbit(data, 6) ? "Asserting" : "Clearing";
-	cout << bank_str << " bank 5800 line..." << endl;
 	cout << rmrd_str << " K052109 RM/RD line..." << endl;
 
-	is_bank_5800_ram = testbit(data, 5);
+	is_bank_5800_upper = testbit(data, 5);
     }
 
     uint8_t BlockHoleCore::readBank5800(uint16_t addr)
@@ -192,7 +190,7 @@ namespace berrn
 	uint8_t data = 0;
 	addr &= 0x7FF;
 
-	if (is_bank_5800_ram)
+	if (is_bank_5800_upper)
 	{
 	    data = bank_5800_ram.at(addr);
 	}
@@ -208,7 +206,7 @@ namespace berrn
     {
 	addr &= 0x7FF;
 
-	if (is_bank_5800_ram)
+	if (is_bank_5800_upper)
 	{
 	    bank_5800_ram.at(addr) = data;
 	}

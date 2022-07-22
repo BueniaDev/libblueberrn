@@ -42,6 +42,18 @@ namespace berrn
 	priority_chip.write(reg, data);
     }
 
+    void k053251video::write16(bool upper, bool lower, uint32_t addr, uint16_t data)
+    {
+	(void)upper;
+
+	if (lower)
+	{
+	    int reg_addr = ((addr >> 1) & 0xF);
+	    uint8_t reg_data = (data & 0xFF);
+	    write(reg_addr, reg_data);
+	}
+    }
+
     void k053251video::setPriority(int layer, uint8_t data)
     {
 	priority_chip.set_priority(layer, data);

@@ -25,9 +25,9 @@ namespace berrn
     static BerrnGfxLayout bg_layout = 
     {
 	16, 16,
-	256,
+	berrn_rgn_frac(1, 3),
 	3,
-	{0, 0x10000, 0x20000},
+	{berrn_rgn_frac(0, 3), berrn_rgn_frac(1, 3), berrn_rgn_frac(2, 3)},
 	{ gfx_step8(0, 1), gfx_step8(64, 1) },
 	{ gfx_step8(0, 8), gfx_step8(128, 8) },
 	256
@@ -36,9 +36,9 @@ namespace berrn
     static BerrnGfxLayout fg_layout = 
     {
 	8, 8,
-	512,
+	berrn_rgn_frac(1, 3),
 	3,
-	{0, 0x8000, 0x10000},
+	{berrn_rgn_frac(0, 3), berrn_rgn_frac(1, 3), berrn_rgn_frac(2, 3)},
 	{ gfx_step8(0, 1) },
 	{ gfx_step8(0, 8) },
 	64

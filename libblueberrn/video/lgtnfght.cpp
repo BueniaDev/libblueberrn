@@ -16,28 +16,28 @@
     along with libblueberrn.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "punkshot.h"
+#include "lgtnfght.h"
 using namespace berrn;
 using namespace std;
 
 namespace berrn
 {
-    punkshotvideo::punkshotvideo(berrndriver &drv) : driver(drv)
+    lightningvideo::lightningvideo(berrndriver &drv) : driver(drv)
     {
 	tilemap = new k052109video(driver);
-	spritemap = new k051960video(driver);
+	spritemap = new k053245video(driver);
 	priormap = new k053251video(driver);
 
-	bitmap = new BerrnBitmapRGB(288, 224);
+	bitmap = new BerrnBitmapRGB(320, 224);
 	bitmap->clear();
     }
 
-    punkshotvideo::~punkshotvideo()
+    lightningvideo::~lightningvideo()
     {
 
     }
 
-    void punkshotvideo::init()
+    void lightningvideo::init()
     {
 	auto tile_callback = [&](int, uint8_t tile_num, uint8_t color_attrib, int bank) -> uint32_t
 	{
@@ -48,15 +48,8 @@ namespace berrn
 	    return tilemap->create_tilemap_addr(tile_addr, attrib_byte);
 	};
 
-	auto sprite_callback = [&](uint16_t &code, uint16_t &color_attrib, uint8_t &priority, bool&) -> void
-	{
-	    priority = (0x20 | ((color_attrib & 0x60) >> 2));
-	    code |= ((color_attrib & 0x10) << 9);
-	    color_attrib = (color_attrib & 0xF);
-	};
-
 	auto tile_rom = driver.get_rom_region("k052109");
-	auto sprite_rom = driver.get_rom_region("k051960");
+	auto sprite_rom = driver.get_rom_region("k053245");
 
 	tilemap->setCallback(tile_callback);
 	tilemap->init();
@@ -64,124 +57,18 @@ namespace berrn
 
 	spritemap->init();
 	spritemap->setROM(sprite_rom);
-	spritemap->setSpriteCallback(sprite_callback);
+
 	priormap->init();
+	driver.resize(320, 224, 2);
     }
 
-    void punkshotvideo::shutdown()
+    void lightningvideo::shutdown()
     {
 	tilemap->shutdown();
-	spritemap->shutdown();
 	bitmap->clear();
     }
 
-    bool punkshotvideo::isIRQEnabled()
-    {
-	return tilemap->isIRQEnabled();
-    }
-
-    void punkshotvideo::updatePixels()
-    {
-	// TODO: Finish implementing video logic
-	layer0 = tilemap->render(0);
-	layer1 = tilemap->render(1);
-	layer2 = tilemap->render(2);
-
-	spritemap->render();
-	objlayer = spritemap->getFramebuffer();
-
-	priormap->setPriority(0, 0x3F);
-	priormap->setPriority(2, 0x3F);
-
-	priormap->setInput(0, 0);
-
-	for (int xpos = 0; xpos < 288; xpos++)
-	{
-	    for (int ypos = 0; ypos < 224; ypos++)
-	    {
-		int bg0_offs = ((112 + xpos) + ((ypos + 16) * 512));
-		int bg1_offs = ((106 + xpos) + ((ypos + 16) * 512));
-
-		int bg0 = layer0.at(bg0_offs);
-		int bg1 = layer1.at(bg1_offs);
-		int bg2 = layer2.at(bg1_offs);
-		int obj = objlayer.at(bg0_offs);
-
-		int bg0_tilenum = (bg0 & 0xF);
-		int bg0_color = ((bg0 >> 5) & 0x7);
-		int bg0_input = ((bg0_color << 4) | bg0_tilenum);
-
-		int bg1_tilenum = (bg1 & 0xF);
-		int bg1_color = ((bg1 >> 5) & 0x7);
-		int bg1_input = ((bg1_color << 4) | bg1_tilenum);
-
-		int bg2_tilenum = (bg2 & 0xF);
-		int bg2_color = ((bg2 >> 5) & 0x7);
-		int bg2_input = ((bg2_color << 4) | bg2_tilenum);
-
-		int obj_tilenum = (obj & 0xF);
-		int obj_color = ((obj >> 4) & 0xFF);
-		int obj_prior = ((obj >> 12) & 0xFF);
-		bool obj_shadow = testbit(obj, 20);
-		int obj_input = ((obj_color << 4) | obj_tilenum);
-
-		int shadow = (obj_shadow) ? 1 : 0;
-
-		priormap->setInput(1, 0);
-		priormap->setInput(2, bg0_input);
-		priormap->setInput(3, bg2_input);
-		priormap->setInput(4, bg1_input);
-
-		berrnRGBA prev_color = getColor();
-
-		priormap->setPriority(1, obj_prior);
-		// priormap->setShadow(shadow);
-		priormap->setInput(1, obj_input);
-
-		berrnRGBA color = getColor();
-
-		bool is_shadow = obj_shadow;
-		// bool is_shadow = testbit(priormap->getShadow(), 0);
-
-		if (is_shadow)
-		{
-		    color = (prev_color * 0.60);
-		}
-
-		bitmap->setPixel(xpos, ypos, color);
-	    }
-	}
-
-
-	driver.set_screen_bmp(bitmap);
-    }
-
-    void punkshotvideo::setRMRD(bool line)
-    {
-	tilemap->setRMRD(line);
-    }
-
-    uint16_t punkshotvideo::tileRead(bool upper, bool lower, uint32_t addr)
-    {
-	return tilemap->read16(upper, lower, addr);
-    }
-
-    void punkshotvideo::tileWrite(bool upper, bool lower, uint32_t addr, uint16_t data)
-    {
-	tilemap->write16(upper, lower, addr, data);
-    }
-
-    uint8_t punkshotvideo::spriteRead(uint16_t addr)
-    {
-	return spritemap->read(addr);
-    }
-
-    void punkshotvideo::spriteWrite(uint16_t addr, uint8_t data)
-    {
-	spritemap->write(addr, data);
-    }
-
-    uint16_t punkshotvideo::paletteRead(bool upper, bool lower, uint32_t addr)
+    uint16_t lightningvideo::readPalette(bool upper, bool lower, uint32_t addr)
     {
 	addr &= 0xFFF;
 	uint16_t data = 0;
@@ -199,7 +86,7 @@ namespace berrn
 	return data;
     }
 
-    void punkshotvideo::paletteWrite(bool upper, bool lower, uint32_t addr, uint16_t data)
+    void lightningvideo::writePalette(bool upper, bool lower, uint32_t addr, uint16_t data)
     {
 	addr &= 0xFFF;
 	
@@ -214,13 +101,100 @@ namespace berrn
 	}
     }
 
-    void punkshotvideo::priorityWrite(uint32_t addr, uint8_t data)
+    uint16_t lightningvideo::tileRead(bool upper, bool lower, uint32_t addr)
     {
-	int reg = ((addr >> 1) & 0xF);
-	priormap->write(reg, data);
+	return tilemap->read16(upper, lower, addr);
     }
 
-    berrnRGBA punkshotvideo::getColor()
+    void lightningvideo::tileWrite(bool upper, bool lower, uint32_t addr, uint16_t data)
+    {
+	tilemap->write16(upper, lower, addr, data);
+    }
+
+    uint16_t lightningvideo::readK053244(bool upper, bool lower, uint32_t addr)
+    {
+	return spritemap->k053244_read16(upper, lower, addr);
+    }
+
+    void lightningvideo::writeK053244(bool upper, bool lower, uint32_t addr, uint16_t data)
+    {
+	spritemap->k053244_write16(upper, lower, addr, data);
+    }
+
+    uint16_t lightningvideo::readK053245(bool upper, bool lower, uint32_t addr)
+    {
+	return spritemap->k053245_read16_scattered(upper, lower, addr);
+    }
+
+    void lightningvideo::writeK053245(bool upper, bool lower, uint32_t addr, uint16_t data)
+    {
+	spritemap->k053245_write16_scattered(upper, lower, addr, data);
+    }
+
+    void lightningvideo::writePriority(bool upper, bool lower, uint32_t addr, uint16_t data)
+    {
+	priormap->write16(upper, lower, addr, data);
+    }
+
+    bool lightningvideo::isIRQEnabled()
+    {
+	return tilemap->isIRQEnabled();
+    }
+
+    void lightningvideo::setRMRD(bool line)
+    {
+	tilemap->setRMRD(line);
+    }
+
+    void lightningvideo::updatePixels()
+    {
+	// TODO: Finish implementing video logic
+	layer0 = tilemap->render(0);
+	layer1 = tilemap->render(1);
+	layer2 = tilemap->render(2);
+
+	priormap->setPriority(0, 0x3F);
+	priormap->setPriority(2, 0x3F);
+
+	priormap->setInput(0, 0);
+
+	for (int xpos = 0; xpos < 320; xpos++)
+	{
+	    for (int ypos = 0; ypos < 224; ypos++)
+	    {
+		int bg0_offs = ((96 + xpos) + ((16 + ypos) * 512));
+		int bg1_offs = ((90 + xpos) + ((16 + ypos) * 512));
+		int bg0 = layer0.at(bg0_offs);
+		int bg1 = layer1.at(bg1_offs);
+		int bg2 = layer2.at(bg1_offs);
+
+		int bg0_tilenum = (bg0 & 0xF);
+		int bg0_color = ((bg0 >> 5) & 0x7);
+		int bg0_input = ((bg0_color << 4) | bg0_tilenum);
+
+		int bg1_tilenum = (bg1 & 0xF);
+		int bg1_color = ((bg1 >> 5) & 0x7);
+		int bg1_input = ((bg1_color << 4) | bg1_tilenum);
+
+		int bg2_tilenum = (bg2 & 0xF);
+		int bg2_color = ((bg2 >> 5) & 0x7);
+		int bg2_input = ((bg2_color << 4) | bg2_tilenum);
+
+		priormap->setInput(1, 0);
+		priormap->setInput(2, bg0_input);
+		priormap->setInput(3, bg2_input);
+		priormap->setInput(4, bg1_input);
+
+		berrnRGBA color = getColor();
+
+		bitmap->setPixel(xpos, ypos, color);
+	    }
+	}
+
+	driver.set_screen_bmp(bitmap);
+    }
+
+    berrnRGBA lightningvideo::getColor()
     {
 	auto layer = priormap->getLayer();
 	uint16_t output = priormap->getOutput(layer);

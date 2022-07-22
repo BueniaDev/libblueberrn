@@ -201,6 +201,21 @@ namespace berrn
 	return berrnRGBA(red, green, blue, alpha);
     }
 
+    inline berrnRGBA shadowBlend(berrnRGBA color, bool is_blend = true)
+    {
+	if (is_blend)
+	{
+	    color *= 0.60;
+	}
+
+	return color;
+    }
+
+    inline berrnRGBA shadowBlend(uint8_t red, uint8_t green, uint8_t blue, bool is_blend = true)
+    {
+	return shadowBlend(fromRGB(red, green, blue), is_blend);
+    }
+
     enum BerrnPaletteFormat
     {
 	R8G8B8,
@@ -707,9 +722,14 @@ namespace berrn
 		}
 	    }
 
-	    vector<uint8_t> get_gfx_data()
+	    vector<uint8_t> getGFXData()
 	    {
 		return gfx_data;
+	    }
+
+	    uint32_t getNumTiles()
+	    {
+		return gfx_layout.num_tiles;
 	    }
 
 	private:
@@ -752,12 +772,13 @@ namespace berrn
 	    }
     };
 
-    inline void gfxDecodeSet(BerrnGfxLayout &layout, vector<uint8_t> src, vector<uint8_t> &dst)
+    inline uint32_t gfxDecodeSet(BerrnGfxLayout &layout, vector<uint8_t> src, vector<uint8_t> &dst)
     {
 	BerrnGfx gfx_tiles;
 	gfx_tiles.setLayout(layout, src);
 	gfx_tiles.decode();
-	dst = gfx_tiles.get_gfx_data();
+	dst = gfx_tiles.getGFXData();
+	return gfx_tiles.getNumTiles();
     }
 };
 

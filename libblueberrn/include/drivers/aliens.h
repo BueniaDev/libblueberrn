@@ -70,7 +70,7 @@ namespace berrn
 	    AliensMainInterface *main_inter = NULL;
 	    BerrnKonami2CPU *main_cpu = NULL;
 
-	    bool is_bank_0000_ram = false;
+	    bool is_bank_0000_upper = false;
 
 	    array<uint8_t, 0x400> palette_ram;
 	    array<uint8_t, 0x400> bank_0000_ram;

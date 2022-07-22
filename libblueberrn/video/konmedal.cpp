@@ -81,7 +81,6 @@ namespace berrn
 	tilemap->setCallback(tile_callback);
 	tilemap->init();
 	tilemap->setROM(tile_rom);
-	// tilemap->startLog("shuriboy_log.bin");
     }
 
     void shuriboyvideo::shutdown()
@@ -92,9 +91,7 @@ namespace berrn
 
     void shuriboyvideo::dump()
     {
-	tilemap->startLog("shuriboy_log.bin");
-	frame_number = 0;
-	is_dump_active = true;
+	return;
     }
 
     void shuriboyvideo::initLayerOrder()
@@ -113,19 +110,7 @@ namespace berrn
 	    }
 	}
 
-	tilemap->logRender();
 	driver.set_screen_bmp(bitmap);
-
-	if (is_dump_active)
-	{
-	    frame_number += 1;
-
-	    if (frame_number == 1000)
-	    {
-		tilemap->stopLog();
-		is_dump_active = false;
-	    }
-	}
     }
 
     void shuriboyvideo::render(int layer, int priority)

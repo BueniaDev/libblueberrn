@@ -284,7 +284,6 @@ namespace berrn
 	video->init();
 	vblank_timer->start(time_in_hz(60), true);
 	scheduler.add_device(main_cpu);
-	// driver.resize(512, 256, 2);
 	driver.resize(288, 224, 2);
 	return true;
     }

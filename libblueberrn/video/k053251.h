@@ -38,6 +38,8 @@ namespace berrn
 	    void init();
 	    void write(int reg, uint8_t data);
 
+	    void write16(bool upper, bool lower, uint32_t addr, uint16_t data);
+
 	    void setPriority(int layer, uint8_t data);
 
 	    void setInput(int layer, uint16_t data);

@@ -33,6 +33,7 @@
 #include <tmnt.h>
 #include <mia.h>
 #include <punkshot.h>
+#include <lgtnfght.h>
 #include <xmen.h>
 #include <konmedal.h>
 #include <cave.h>

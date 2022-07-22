@@ -50,8 +50,10 @@ namespace berrn
 	    void setSpriteCallback(k051960callback cb);
 	    void shutdown();
 
-	    void render(int min_priority, int max_priority);
+	    void render();
 	    objbuffer getFramebuffer();
+
+	    void setIRQCallback(berrncbline cb);
 
 	    uint8_t read(uint16_t addr);
 	    void write(uint16_t addr, uint8_t data);
@@ -64,6 +66,12 @@ namespace berrn
 	    vector<uint8_t> obj_rom;
 	    vector<uint8_t> obj_tiles;
 
+	    berrncbline irq_handler;
+
+	    uint32_t num_tiles = 0;
+
+	    BerrnTimer *scanline_timer = NULL;
+
 	    array<uint8_t, 0x400> obj_ram;
 
 	    bool is_rmrd = false;
@@ -75,6 +83,10 @@ namespace berrn
 	    uint32_t rom_offset = 0;
 
 	    void drawNormalSprite(uint32_t sprite_num, uint8_t pal_num, uint8_t priority, bool shadow, int xcoord, int ycoord, bool flipx, bool flipy);
+
+	    void renderSprite(int xpos, int ypos, uint32_t sprite_offs, int pixel, uint8_t pal_num, uint8_t priority, bool shadow);
+
+	    void drawZoomSprite(uint32_t sprite_num, uint8_t pal_num, uint8_t priority, bool shadow, int xcoord, int ycoord, bool flipx, bool flipy, int zoomx, int zoomy);
 
 	    objbuffer obj_buffer;
 

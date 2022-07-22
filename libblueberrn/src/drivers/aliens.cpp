@@ -131,7 +131,7 @@ namespace berrn
 	scheduler.add_device(main_cpu);
 	palette_ram.fill(0);
 	bank_0000_ram.fill(0);
-	is_bank_0000_ram = false;
+	is_bank_0000_upper = false;
 	return true;
     }
 
@@ -151,13 +151,13 @@ namespace berrn
 	uint8_t data = 0;
 	addr &= 0x3FF;
 
-	if (is_bank_0000_ram)
+	if (is_bank_0000_upper)
 	{
-	    data = bank_0000_ram.at(addr);
+	    data = palette_ram.at(addr);
 	}
 	else
 	{
-	    data = palette_ram.at(addr);
+	    data = bank_0000_ram.at(addr);
 	}
 
 	return data;
@@ -167,20 +167,20 @@ namespace berrn
     {
 	addr &= 0x3FF;
 
-	if (is_bank_0000_ram)
+	if (is_bank_0000_upper)
 	{
-	    bank_0000_ram.at(addr) = data;
+	    palette_ram.at(addr) = data;
 	}
 	else
 	{
-	    palette_ram.at(addr) = data;
+	    bank_0000_ram.at(addr) = data;
 	}
     }
 
     void AliensCore::writeCoinCounter(uint8_t data)
     {
 	string rmrd_line = testbit(data, 6) ? "Asserting" : "Clearing";
-	is_bank_0000_ram = testbit(data, 5);
+	is_bank_0000_upper = testbit(data, 5);
 	cout << rmrd_line << " K052109 RMRD line..." << endl;
     }
 

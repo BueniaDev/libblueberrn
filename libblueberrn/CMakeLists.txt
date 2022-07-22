@@ -18,6 +18,7 @@ set(DRIVER_SOURCES
 	libblueberrn/src/drivers/tmnt.cpp
 	libblueberrn/src/drivers/mia.cpp
 	libblueberrn/src/drivers/punkshot.cpp
+	libblueberrn/src/drivers/lgtnfght.cpp
 	libblueberrn/src/drivers/xmen.cpp
 	libblueberrn/src/drivers/cave.cpp
 	libblueberrn/src/drivers/konmedal.cpp
@@ -41,6 +42,7 @@ set(DRIVER_HEADERS
 	libblueberrn/include/drivers/tmnt.h
 	libblueberrn/include/drivers/mia.h
 	libblueberrn/include/drivers/punkshot.h
+	libblueberrn/include/drivers/lgtnfght.h
 	libblueberrn/include/drivers/xmen.h
 	libblueberrn/include/drivers/cave.h
 	libblueberrn/include/drivers/konmedal.h

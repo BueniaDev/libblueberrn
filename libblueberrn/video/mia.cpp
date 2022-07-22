@@ -161,14 +161,14 @@ namespace berrn
 
     void miavideo::updateSprites()
     {
-	spritemap->render(0, 0);
+	spritemap->render();
 	auto obj_buffer = spritemap->getFramebuffer();
 
-	for (int xpos = 104; xpos < 408; xpos++)
+	for (int xpos = 0; xpos < 304; xpos++)
 	{
-	    for (int ypos = 16; ypos < 240; ypos++)
+	    for (int ypos = 0; ypos < 224; ypos++)
 	    {
-		size_t index = (xpos + (ypos * 512));
+		size_t index = ((104 + xpos) + ((16 + ypos) * 512));
 		uint32_t sprite_buffer = obj_buffer.at(index);
 		int color_num = (sprite_buffer & 0xF);
 		int color_attrib = ((sprite_buffer >> 4) & 0xFF);
@@ -179,7 +179,7 @@ namespace berrn
 		}
 
 		int palette_num = ((color_attrib * 16) + color_num);
-		bitmap->setPixel((xpos - 104), (ypos - 16), palette->getColor(palette_num));
+		bitmap->setPixel(xpos, ypos, palette->getColor(palette_num));
 	    }
 	}
     }
@@ -189,11 +189,11 @@ namespace berrn
 	array<int, 3> layer_colorbase = {0, 32, 40};
 	auto gfx_addr = tilemap->render(layer);
 
-	for (int xpos = 104; xpos < 408; xpos++)
+	for (int xpos = 0; xpos < 304; xpos++)
 	{
-	    for (int ypos = 16; ypos < 240; ypos++)
+	    for (int ypos = 0; ypos < 224; ypos++)
 	    {
-		uint32_t pixel_offs = (xpos + (ypos * 512));
+		uint32_t pixel_offs = ((104 + xpos) + ((16 + ypos) * 512));
 		uint32_t tile_addr = (gfx_addr.at(pixel_offs) & 0xFF);
 		int color_num = layer_colorbase.at(layer);
 
@@ -215,7 +215,7 @@ namespace berrn
 
 		int palette_num = ((color_num * 16) + tile_num);
 
-		bitmap->setPixel((xpos - 104), (ypos - 16), palette->getColor(palette_num));
+		bitmap->setPixel(xpos, ypos, palette->getColor(palette_num));
 	    }
 	}
     }

@@ -51,8 +51,6 @@ namespace berrn
 
 	    // TODO: Finish implementing video hardware
 	    array<uint8_t, 0x1000> sprite_ram;
-	    array<uint8_t, 0x400> video_ram;
-	    array<uint8_t, 0x400> color_ram;
 
 	    int current_rom_bank = 0;
     };
@@ -68,6 +66,9 @@ namespace berrn
 	    void run_core();
 
 	    void writeIO(int addr, uint8_t data);
+
+	    uint8_t readGraphics(int bank, uint16_t addr);
+	    void writeGraphics(int bank, uint16_t addr, uint8_t data);
 
 	    uint8_t readSecurity();
 	    void writeSecurity(uint8_t data);

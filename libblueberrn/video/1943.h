@@ -38,6 +38,13 @@ namespace berrn
 	    void writeBGScrollX(bool is_msb, uint8_t data);
 	    void writeBGScrollY(uint8_t data);
 	    void writeD806(uint8_t data);
+	    void writeC804(uint8_t data);
+
+	    uint8_t readVRAM(uint16_t addr);
+	    void writeVRAM(uint16_t addr, uint8_t data);
+
+	    uint8_t readCRAM(uint16_t addr);
+	    void writeCRAM(uint16_t addr, uint8_t data);
 
 	    void init();
 	    void shutdown();
@@ -48,13 +55,18 @@ namespace berrn
 
 	    void updateBG1();
 	    void updateBG2();
+	    void updateFG();
 
 	    void initPalettes();
 
 	    BerrnBitmapRGB *bitmap = NULL;
 
+	    vector<uint8_t> fg_tiles;
 	    vector<uint8_t> bg_tiles;
 	    vector<uint8_t> bg2_tiles;
+
+	    array<uint8_t, 0x400> video_ram;
+	    array<uint8_t, 0x400> color_ram;
 
 	    void setPriorPixel(int xpos, int ypos, int bit)
 	    {
@@ -71,6 +83,7 @@ namespace berrn
 
 	    array<uint8_t, 0x100> bg_palettes;
 	    array<uint8_t, 0x100> fg_palettes;
+	    array<uint8_t, 0x80> char_palettes;
 	    array<berrnRGBA, 256> colors;
 
 	    array<uint8_t, (256 * 224)> prior_bmp;
@@ -79,6 +92,7 @@ namespace berrn
 
 	    bool is_bg1_enabled = false;
 	    bool is_bg2_enabled = false;
+	    bool is_fg_enabled = false;
 
 	    uint16_t bg2_scrollx = 0;
 	    uint16_t bg_scrollx = 0;

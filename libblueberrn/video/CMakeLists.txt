@@ -6,11 +6,13 @@ set(VIDEO_SOURCES
 	libblueberrn/video/1943.cpp
 	libblueberrn/video/k052109.cpp
 	libblueberrn/video/k051960.cpp
+	libblueberrn/video/k053245.cpp
 	libblueberrn/video/k053251.cpp
 	libblueberrn/video/konmedal.cpp
 	libblueberrn/video/tmnt.cpp
 	libblueberrn/video/mia.cpp
 	libblueberrn/video/punkshot.cpp
+	libblueberrn/video/lgtnfght.cpp
 	libblueberrn/video/bombjack.cpp
 	libblueberrn/video/pc080sn.cpp
 	libblueberrn/video/rastan.cpp
@@ -25,10 +27,12 @@ set(VIDEO_HEADERS
 	libblueberrn/video/k052109.h
 	libblueberrn/video/k051960.h
 	libblueberrn/video/k053251.h
+	libblueberrn/video/k053245.h
 	libblueberrn/video/konmedal.h
 	libblueberrn/video/tmnt.h
 	libblueberrn/video/mia.h
 	libblueberrn/video/punkshot.h
+	libblueberrn/video/lgtnfght.h
 	libblueberrn/video/bombjack.h
 	libblueberrn/video/pc080sn.h
 	libblueberrn/video/rastan.h

@@ -58,7 +58,22 @@ namespace berrn
 
     k051960video::k051960video(berrndriver &drv) : driver(drv)
     {
+	scanline_timer = new BerrnTimer("OBJTimer", driver.get_scheduler(), [&](int64_t, int64_t)
+	{
+	    auto screen = driver.get_screen();
 
+	    uint8_t ypos = screen->vpos();
+
+	    if (ypos == 240)
+	    {
+		if (irq_handler)
+		{
+		    irq_handler(true);
+		}
+	    }
+
+	    scanline_timer->start(screen->time_until_pos(ypos + 1), false);
+	});
     }
 
     k051960video::~k051960video()
@@ -68,9 +83,18 @@ namespace berrn
 
     void k051960video::init()
     {
+	auto screen = driver.get_screen();
 	obj_ram.fill(0);
 	gfx_layout = layout_base;
 	shadow_config = 0;
+	is_rmrd = false;
+	scanline_timer->start(screen->time_until_pos(0), false);
+    }
+
+    void k051960video::shutdown()
+    {
+	obj_tiles.clear();
+	scanline_timer->stop();
     }
 
     void k051960video::setLayout(K051960Layout layout)
@@ -84,14 +108,14 @@ namespace berrn
 	}
 
 	obj_tiles.clear();
-	gfxDecodeSet(gfx_layout, obj_rom, obj_tiles);
+	num_tiles = gfxDecodeSet(gfx_layout, obj_rom, obj_tiles);
     }
 
     void k051960video::setROM(vector<uint8_t> &rom)
     {
 	obj_rom = vector<uint8_t>(rom.begin(), rom.end());
 	obj_tiles.clear();
-	gfxDecodeSet(gfx_layout, obj_rom, obj_tiles);
+	num_tiles = gfxDecodeSet(gfx_layout, obj_rom, obj_tiles);
     }
 
     void k051960video::setSpriteCallback(k051960callback cb)
@@ -99,20 +123,13 @@ namespace berrn
 	spritecb = cb;
     }
 
-    void k051960video::shutdown()
+    void k051960video::setIRQCallback(berrncbline cb)
     {
-	obj_tiles.clear();
+	irq_handler = cb;
     }
 
-    void k051960video::render(int min_priority, int max_priority)
+    void k051960video::render()
     {
-	// TODO: Implement the following features:
-	// Priority blending
-	// Sprite zooming
-
-	(void)min_priority;
-	(void)max_priority;
-
 	obj_buffer.fill(0);
 
 	array<int, 8> xoffset = {0, 1, 4, 5, 16, 17, 20, 21};
@@ -215,8 +232,11 @@ namespace berrn
 	    bool is_flipx = testbit(attrib6, 1);
 	    bool is_flipy = testbit(attrib4, 1);
 
-	    int32_t xzoom = 0x10000;
-	    int32_t yzoom = 0x10000;
+	    int zoomx = ((attrib6 >> 2) & 0x3F);
+	    int zoomy = ((attrib4 >> 2) & 0x3F);
+
+	    int32_t xzoom = (0x10000 / 128 * (128 - zoomx));
+	    int32_t yzoom = (0x10000 / 128 * (128 - zoomy));
 
 	    int width_mask = (obj_width - 1);
 	    int height_mask = (obj_height - 1);
@@ -253,11 +273,123 @@ namespace berrn
 		    }
 		}
 	    }
+	    else
+	    {
+		for (int sy = 0; sy < obj_height; sy++)
+		{
+		    int ycoord = sprite_ypos + ((yzoom * sy + (1 << 11)) >> 12);
+		    int zoomh = ((sprite_ypos + ((yzoom * (sy + 1) + (1 << 11)) >> 12)) - ycoord);
+
+		    for (int sx = 0; sx < obj_width; sx++)
+		    {
+			int xcoord = sprite_xpos + ((xzoom * sx + (1 << 11)) >> 12);
+			int zoomw = ((sprite_xpos + ((xzoom * (sx + 1) + (1 << 11)) >> 12)) - xcoord);
+
+			int32_t sprite_code = sprite_num;
+
+			int xoffs = sx;
+			int yoffs = sy;
+
+			sprite_code += xoffset.at(xoffs);
+			sprite_code += yoffset.at(yoffs);
+
+			int zoom_xpos = (zoomw << 12);
+			int zoom_ypos = (zoomh << 12);
+
+			drawZoomSprite(sprite_code, color_attrib, priority, is_shadow, xcoord, ycoord, is_flipx, is_flipy, zoom_xpos, zoom_ypos);
+		    }
+		}
+	    }
 	}
+    }
+
+    void k051960video::drawZoomSprite(uint32_t sprite_num, uint8_t pal_num, uint8_t priority, bool shadow, int xcoord, int ycoord, bool flipx, bool flipy, int zoomx, int zoomy)
+    {
+	sprite_num %= num_tiles;
+	uint32_t sprite_offs = (sprite_num * 256);
+
+	int base_x = xcoord;
+	int base_y = ycoord;
+
+	int dh = ((zoomy * 16 + 0x8000) / 0x10000);
+	int dw = ((zoomx * 16 + 0x8000) / 0x10000);
+
+	if ((dw != 0) && (dh != 0))
+	{
+	    int dx = (0x100000 / dw);
+	    int dy = (0x100000 / dh);
+
+	    int y_index = 0;
+	    int x_index_base = 0;
+
+	    for (int py = 0; py < dh; py++)
+	    {
+		int ypos = (base_y + py);
+
+		if (!inRange(ypos, 0, 256))
+		{
+		    continue;
+		}
+
+		int pixely = (y_index / 0x10000);
+
+		for (int px = 0, x_index = x_index_base; px < dw; px++)
+		{
+		    int xpos = (base_x + px);
+
+		    if (!inRange(xpos, 0, 512))
+		    {
+			continue;
+		    }
+
+		    int pixelx = (x_index >> 16);
+
+		    int pixel = ((pixely * 16) + pixelx);
+
+		    renderSprite(xpos, ypos, sprite_offs, pixel, pal_num, priority, shadow);
+
+		    x_index += dx;
+		}
+
+		y_index += dy;
+	    }
+	}
+    }
+
+    void k051960video::renderSprite(int xpos, int ypos, uint32_t sprite_offs, int pixel, uint8_t pal_num, uint8_t priority, bool shadow)
+    {
+	if (!inRange(xpos, 0, 512) || !inRange(ypos, 0, 256))
+	{
+	    return;
+	}
+
+	uint32_t color_num = (obj_tiles.at(sprite_offs + pixel) & 0xF);
+
+	if (color_num == 0)
+	{
+	    return;
+	}
+
+	size_t pixel_offs = (xpos + (ypos * 512));
+
+	bool is_shadow = false;
+
+	if (color_num == 15)
+	{
+	    is_shadow = (shadow && !testbit(shadow_config, 0));
+	}
+	else
+	{
+	    is_shadow = testbit(shadow_config, 0);
+	}
+
+	auto &obj_pixel = obj_buffer.at(pixel_offs);
+	obj_pixel = (color_num | (pal_num << 4) | (priority << 12) | (is_shadow << 20));
     }
 
     void k051960video::drawNormalSprite(uint32_t sprite_num, uint8_t pal_num, uint8_t priority, bool shadow, int xcoord, int ycoord, bool flipx, bool flipy)
     {
+	sprite_num %= num_tiles;
 	uint32_t sprite_offs = (sprite_num * 256);
 
 	int base_x = xcoord;
@@ -281,33 +413,7 @@ namespace berrn
 	    int xpos = (base_x + px);
 	    int ypos = (base_y + py);
 
-	    if (!inRange(xpos, 0, 512) || !inRange(ypos, 0, 256))
-	    {
-		continue;
-	    }
-
-	    uint32_t color_num = (obj_tiles.at(sprite_offs + pixel) & 0xF);
-
-	    if (color_num == 0)
-	    {
-		continue;
-	    }
-
-	    size_t pixel_offs = (xpos + (ypos * 512));
-
-	    bool is_shadow = false;
-
-	    if (color_num == 15)
-	    {
-		is_shadow = (shadow && !testbit(shadow_config, 0));
-	    }
-	    else
-	    {
-		is_shadow = testbit(shadow_config, 0);
-	    }
-
-	    auto &obj_pixel = obj_buffer.at(pixel_offs);
-	    obj_pixel = (color_num | (pal_num << 4) | (priority << 12) | (is_shadow << 20));
+	    renderSprite(xpos, ypos, sprite_offs, pixel, pal_num, priority, shadow);
 	}
     }
 
@@ -343,6 +449,11 @@ namespace berrn
 	{
 	    switch (addr)
 	    {
+		case 0:
+		{
+		    data = (driver.get_screen()->is_vblank()) ? 1 : 0;
+		}
+		break;
 		case 4:
 		case 5:
 		case 6:
@@ -385,7 +496,16 @@ namespace berrn
 	    {
 		case 0:
 		{
-		    cout << "Writing value of " << hex << int(data) << " to K051960 address of 0" << endl;
+		    // cout << "Writing value of " << hex << int(data) << " to K051960 address of 0" << endl;
+
+		    if (testbit(data, 0))
+		    {
+			if (irq_handler)
+			{
+			    irq_handler(false);
+			}
+		    }
+
 		    is_rmrd = testbit(data, 5);
 		}
 		break;

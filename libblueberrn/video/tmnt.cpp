@@ -27,7 +27,7 @@ namespace berrn
 	bitmap = new BerrnBitmapRGB(320, 224);
 	bitmap->clear();
 
-	palette = new BerrnPaletteXBGR555(1024, true);
+	// palette = new BerrnPaletteXBGR555(1024, true);
 
 	tilemap = new k052109video(driver);
 	spritemap = new k051960video(driver);
@@ -131,6 +131,7 @@ namespace berrn
 	spritemap->setROM(sprite_rom);
 	spritemap->setLayout(K051960Layout::MIA);
 	spritemap->setSpriteCallback(sprite_callback);
+	palette_ram.fill(0);
     }
 
     void tmntvideo::shutdown()
@@ -140,7 +141,7 @@ namespace berrn
 	tilemap->shutdown();
 	spritemap->shutdown();
 	bitmap->clear();
-	palette->clear();
+	// palette->clear();
     }
 
     void tmntvideo::chunky_to_planar(vector<uint8_t> &rom)
@@ -169,14 +170,13 @@ namespace berrn
 	layer1 = tilemap->render(1);
 	layer2 = tilemap->render(2);
 
-	spritemap->render(0, 0);
+	spritemap->render();
 	objlayer = spritemap->getFramebuffer();
 
 	for (int xpos = 0; xpos < 320; xpos++)
 	{
 	    for (int ypos = 0; ypos < 224; ypos++)
 	    {
-		uint16_t prior_addr = 0;
 		// NOTE: These measurements match recordings taken from a real PCB
 		size_t bg_offs = ((96 + xpos) + ((16 + ypos) * 512));
 		size_t obj_offs = ((102 + xpos) + ((16 + ypos) * 512));
@@ -185,51 +185,14 @@ namespace berrn
 		int bg2 = layer2.at(bg_offs);
 		int obj = objlayer.at(obj_offs);
 
-		int bg0_tilenum = (bg0 & 0xF);
-		int bg1_tilenum = (bg1 & 0xF);
-		int bg2_tilenum = (bg2 & 0xF);
-		int obj_tilenum = (obj & 0xF);
+		bool obj_shadow = testbit(obj, 20);
+		bool is_shadow = isShadow(bg0, bg1, bg2, obj, obj_shadow);
 
-		prior_addr = (priority_flag << 6);
+		int shadow_palette = getPaletteNum(bg0, bg1, bg2);
+		int layer_palette = getPaletteNum(bg0, bg1, bg2, obj, obj_shadow);
 
-		prior_addr = changebit(prior_addr, 5, testbit(bg2, 7));
-		prior_addr = changebit(prior_addr, 4, testbit(obj, 20));
-		prior_addr = changebit(prior_addr, 3, (bg0_tilenum != 0));
-		prior_addr = changebit(prior_addr, 2, (obj_tilenum != 0));
-		prior_addr = changebit(prior_addr, 1, (bg2_tilenum != 0));
-		prior_addr = changebit(prior_addr, 0, (bg1_tilenum != 0));
-
-		int prior_value = priority_rom.at(prior_addr);
-
-		int priority = (prior_value & 0x3);
-
-		int palette_num = 0;
-
-		switch (priority)
-		{
-		    case 0:
-		    {
-			palette_num = (0x200 | (((bg1 >> 5) & 0x7) << 4) | bg1_tilenum);
-		    }
-		    break;
-		    case 1:
-		    {
-			palette_num = (0x280 | (((bg2 >> 5) & 0x7) << 4) | bg2_tilenum);
-		    }
-		    break;
-		    case 2:
-		    {
-			palette_num = (0x100 | (obj & 0xFF));
-		    }
-		    break;
-		    case 3:
-		    {
-			palette_num = ((((bg0 >> 5) & 0x7) << 4) | bg0_tilenum);
-		    }
-		    break;
-		}
-
-		bitmap->setPixel(xpos, ypos, palette->getColor(palette_num));
+		int palette_num = is_shadow ? shadow_palette : layer_palette;
+		bitmap->setPixel(xpos, ypos, getColor(palette_num, is_shadow));
 	    }
 	}
 
@@ -264,13 +227,13 @@ namespace berrn
     uint8_t tmntvideo::palette_read(uint32_t addr)
     {
 	addr = ((addr >> 1) & 0x7FF);
-	return palette->read8(addr);
+	return palette_ram.at(addr);
     }
 
     void tmntvideo::palette_write(uint32_t addr, uint8_t data)
     {
 	addr = ((addr >> 1) & 0x7FF);
-	palette->write8(addr, data);
+	palette_ram.at(addr) = data;
     }
 
     void tmntvideo::set_priority(int data)
@@ -281,5 +244,89 @@ namespace berrn
     void tmntvideo::setRMRD(bool line)
     {
 	tilemap->setRMRD(line);
+    }
+
+    int tmntvideo::getPaletteNum(int bg0, int bg1, int bg2, int obj, bool shadow)
+    {
+	int bg0_tilenum = (bg0 & 0xF);
+	int bg1_tilenum = (bg1 & 0xF);
+	int bg2_tilenum = (bg2 & 0xF);
+
+	int prior_val = getPriority(bg0, bg1, bg2, obj, shadow);
+	int priority = (prior_val & 0x3);
+	int palette_num = 0;
+
+	switch (priority)
+	{
+	    case 0:
+	    {
+		palette_num = (0x200 | (((bg1 >> 5) & 0x7) << 4) | bg1_tilenum);
+	    }
+	    break;
+	    case 1:
+	    {
+		palette_num = (0x280 | (((bg2 >> 5) & 0x7) << 4) | bg2_tilenum);
+	    }
+	    break;
+	    case 2:
+	    {
+		palette_num = (0x100 | (obj & 0xFF));
+	    }
+	    break;
+	    case 3:
+	    {
+		palette_num = ((((bg0 >> 5) & 0x7) << 4) | bg0_tilenum);
+	    }
+	    break;
+	}
+
+	return palette_num;
+    }
+
+    int tmntvideo::getPriority(int bg0, int bg1, int bg2, int obj, bool shadow)
+    {
+	int bg0_tilenum = (bg0 & 0xF);
+	int bg1_tilenum = (bg1 & 0xF);
+	int bg2_tilenum = (bg2 & 0xF);
+	int obj_tilenum = (obj & 0xF);
+
+	int prior_addr = (priority_flag << 6);
+
+	prior_addr = changebit(prior_addr, 5, testbit(bg2, 7));
+	prior_addr = changebit(prior_addr, 4, shadow);
+	prior_addr = changebit(prior_addr, 3, (bg0_tilenum != 0));
+	prior_addr = changebit(prior_addr, 2, (obj_tilenum != 0));
+	prior_addr = changebit(prior_addr, 1, (bg2_tilenum != 0));
+	prior_addr = changebit(prior_addr, 0, (bg1_tilenum != 0));
+
+	return priority_rom.at(prior_addr);
+    }
+
+    bool tmntvideo::isShadow(int bg0, int bg1, int bg2, int obj, bool shadow)
+    {
+	int prior_val = getPriority(bg0, bg1, bg2, obj, shadow);
+	// Return true if shadow needs to be drawn
+	return !testbit(prior_val, 2);
+    }
+
+    berrnRGBA tmntvideo::getColor(int palette_num, bool is_shadow)
+    {
+	palette_num &= 0x3FF;
+
+ 	int pal_offs = (palette_num * 2);
+	uint8_t high = palette_ram.at(pal_offs);
+	uint8_t low = palette_ram.at(pal_offs + 1);
+
+	uint16_t color = ((high << 8) | low);
+
+	int red_val = (color & 0x1F);
+	int green_val = ((color >> 5) & 0x1F);
+	int blue_val = ((color >> 10) & 0x1F);
+
+	int red = ((red_val << 3) | (red_val >> 2));
+	int green = ((green_val << 3) | (green_val >> 2));
+	int blue = ((blue_val << 3) | (blue_val >> 2));
+
+	return shadowBlend(red, green, blue, is_shadow);
     }
 };

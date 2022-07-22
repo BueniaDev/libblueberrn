@@ -82,7 +82,17 @@ namespace berrn
 
 	    void render_tile_layer(int layer, bool is_opaque);
 
-	    BerrnPaletteXBGR555 *palette = NULL;
+	    array<uint8_t, 0x800> palette_ram;
+
+	    berrnRGBA getColor(int palette_num, bool is_source);
+
+	    int getPaletteNum(int bg0, int bg1, int bg2, int obj = 0, bool shadow = false);
+
+	    int getPriority(int bg0, int bg1, int bg2, int obj, bool shadow);
+
+	    bool isShadow(int bg0, int bg1, int bg2, int obj, bool shadow);
+
+	    // BerrnPaletteXBGR555 *palette = NULL;
     };
 };
 
